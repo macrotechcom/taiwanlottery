@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣彩券選號助手</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #e74c3c;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #c0392b;
+        }
+        
+        .result {
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            margin: 20px 0;
+            min-height: 30px;
+        }
+        
+        .history {
+            margin-top: 30px;
+        }
+        
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .history-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .algorithm-info {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-color: #ddd;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>台灣彩券選號助手</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="generator">選號產生器</div>
+            <div class="tab" data-tab="algorithm">演算法說明</div>
+            <div class="tab" data-tab="about">關於本站</div>
+        </div>
+        
+        <div class="tab-content active" id="generator">
+            <div class="form-group">
+                <label for="lottery-type">彩券類型：</label>
+                <select id="lottery-type">
+                    <option value="big-lotto">大樂透 (1-49 選6個號碼+特別號)</option>
+                    <option value="power-color">威力彩 (1-38 選6個號碼+特別號)</option>
+                    <option value="539">今彩539 (1-39 選5個號碼)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="algorithm-type">選號演算法：</label>
+                <select id="algorithm-type">
+                    <option value="hot">熱門號碼選號</option>
+                    <option value="cold">冷門號碼選號</option>
+                    <option value="pattern">模式選號</option>
+                    <option value="combination">組合選號</option>
+                    <option value="balanced">平衡選號</option>
+                    <option value="random">隨機選號</option>
+                </select>
+            </div>
+            
+            <div class="algorithm-info" id="algorithm-description">
+                <p><strong>熱門號碼選號演算法</strong>：根據歷史開獎數據中出現頻率較高的號碼進行選號。適合相信「熱門號碼理論」的玩家，認為歷史高頻號碼會繼續保持熱度。</p>
+            </div>
+            
+            <button id="generate-btn">產生選號</button>
+            
+            <div class="result" id="result"></div>
+            
+            <div class="history">
+                <h3>歷史記錄</h3>
+                <div id="history-list"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="algorithm">
+            <h2>選號演算法說明</h2>
+            
+            <h3>1. 熱門號碼選號演算法</h3>
+            <p>該演算法基於「熱門號碼理論」，認為歷史上出現頻率較高的號碼在未來開獎中也有較高的出現機率。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>分析歷史開獎數據，計算每個號碼的出現頻率。</li>
+                <li>根據出現頻率為每個號碼分配權重，頻率越高權重越大。</li>
+                <li>使用加權隨機選擇方法，根據權重選擇號碼。</li>
+                <li>對於特別號，也使用類似的加權選擇方法。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合相信「熱門號碼理論」的玩家，認為歷史高頻號碼會繼續保持熱度。</p>
+            
+            <h3>2. 冷門號碼選號演算法</h3>
+            <p>該演算法基於「冷門號碼理論」，認為歷史上出現頻率較低的號碼在未來開獎中有「回溫」的趨勢。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>分析歷史開獎數據，計算每個號碼的出現頻率。</li>
+                <li>根據出現頻率的倒數為每個號碼分配權重，頻率越低權重越大。</li>
+                <li>使用加權隨機選擇方法，根據權重選擇號碼。</li>
+                <li>對於特別號，也傾向於選擇較少出現的號碼。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合相信「迴歸均值」理論的玩家，認為長期未開出的號碼有更高機會被開出。</p>
+            
+            <h3>3. 模式選號演算法</h3>
+            <p>該演算法基於歷史開獎數據中的各種模式，如奇偶比例、大小比例和號碼總和等。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>分析歷史開獎數據，找出最常見的奇偶比例和大小比例。</li>
+                <li>計算號碼總和的平均值和標準差。</li>
+                <li>生成符合這些模式的號碼組合。</li>
+                <li>如果無法找到完全符合的組合，逐步放寬條件。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合相信彩券開獎結果遵循某些統計模式的玩家。</p>
+            
+            <h3>4. 組合選號演算法</h3>
+            <p>該演算法基於歷史開獎數據中常見的號碼組合，如號碼對和三連號。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>分析歷史開獎數據，找出最常出現的號碼對和三連號。</li>
+                <li>從常見的三連號中選擇一組（如果適用）。</li>
+                <li>從常見的號碼對中選擇，直到達到所需的號碼數量。</li>
+                <li>如果還需要更多號碼，隨機補充。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合相信某些號碼組合更容易同時出現的玩家。</p>
+            
+            <h3>5. 平衡選號演算法</h3>
+            <p>該演算法結合熱門號碼和冷門號碼，生成平衡的選號。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>根據設定的比例，決定選取熱門號碼和冷門號碼的數量。</li>
+                <li>從熱門號碼中隨機選取指定數量的號碼。</li>
+                <li>從冷門號碼中隨機選取指定數量的號碼，確保不與已選的熱門號碼重複。</li>
+                <li>對於特別號，有較高機率選擇熱門特別號。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合希望兼顧熱門號碼和冷門號碼的玩家，平衡風險和機會。</p>
+            
+            <h3>6. 隨機選號演算法</h3>
+            <p>該演算法完全隨機生成號碼，不考慮歷史數據。</p>
+            <p><strong>演算法步驟</strong>：</p>
+            <ol>
+                <li>從所有可能的號碼中隨機選擇指定數量的號碼。</li>
+                <li>對於特別號，也隨機選擇一個號碼。</li>
+            </ol>
+            <p><strong>適用場景</strong>：適合相信彩券開獎完全隨機，歷史數據無法預測未來結果的玩家。</p>
+        </div>
+        
+        <div class="tab-content" id="about">
+            <h2>關於台灣彩券選號助手</h2>
+            
+            <p>台灣彩券選號助手是一款專為台灣彩券玩家設計的選號工具，支援大樂透、威力彩和今彩539三種彩券類型，提供六種不同的選號演算法，幫助用戶根據不同策略生成彩券號碼。</p>
+            
+            <h3>功能特點</h3>
+            <ul>
+                <li><strong>多種彩券類型支援</strong>：大樂透、威力彩和今彩539</li>
+                <li><strong>六種選號演算法</strong>：熱門號碼、冷門號碼、模式選號、組合選號、平衡選號和隨機選號</li>
+                <li><strong>歷史記錄功能</strong>：保存生成的號碼記錄</li>
+                <li><strong>響應式設計</strong>：適合在各種設備上使用，包括手機和平板</li>
+            </ul>
+            
+            <h3>注意事項</h3>
+            <ul>
+                <li>本網站僅提供選號參考，不保證中獎</li>
+                <li>彩券遊戲具有隨機性，任何選號演算法都無法保證中獎</li>
+                <li>請理性投注，適度娛樂</li>
+                <li>本網站不會收集任何個人資料</li>
+                <li>網站中的歷史數據僅保存在本地瀏覽器，不會上傳到任何伺服器</li>
+            </ul>
+            
+            <p>祝您好運！</p>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2025 台灣彩券選號助手 | 本網站僅供娛樂參考，請理性投注</p>
+    </footer>
+
+    <script>
+        // 彩券參數
+        const LOTTERY_PARAMS = {
+            'big-lotto': { numbers: 6, special: true, maxNumber: 49 },
+            'power-color': { numbers: 6, special: true, maxNumber: 38 },
+            '539': { numbers: 5, special: false, maxNumber: 39 }
+        };
+        
+        // 演算法描述
+        const ALGORITHM_DESCRIPTIONS = {
+            'hot': '<strong>熱門號碼選號演算法</strong>：根據歷史開獎數據中出現頻率較高的號碼進行選號。適合相信「熱門號碼理論」的玩家，認為歷史高頻號碼會繼續保持熱度。',
+            'cold': '<strong>冷門號碼選號演算法</strong>：根據歷史開獎數據中出現頻率較低的號碼進行選號。適合相信「迴歸均值」理論的玩家，認為長期未開出的號碼有更高機會被開出。',
+            'pattern': '<strong>模式選號演算法</strong>：根據歷史開獎數據中的奇偶比例、大小比例和號碼總和等模式進行選號。適合相信彩券開獎結果遵循某些統計模式的玩家。',
+            'combination': '<strong>組合選號演算法</strong>：根據歷史開獎數據中常見的號碼對和三連號進行選號。適合相信某些號碼組合更容易同時出現的玩家。',
+            'balanced': '<strong>平衡選號演算法</strong>：結合熱門號碼和冷門號碼，生成平衡的選號。適合希望兼顧熱門號碼和冷門號碼的玩家，平衡風險和機會。',
+            'random': '<strong>隨機選號演算法</strong>：完全隨機生成號碼，不考慮歷史數據。適合相信彩券開獎完全隨機，歷史數據無法預測未來結果的玩家。'
+        };
+        
+        // 彩券類型顯示名稱
+        const LOTTERY_DISPLAY_NAMES = {
+            'big-lotto': '大樂透',
+            'power-color': '威力彩',
+            '539': '今彩539'
+        };
+        
+        // 演算法顯示名稱
+        const ALGORITHM_DISPLAY_NAMES = {
+            'hot': '熱門號碼選號',
+            'cold': '冷門號碼選號',
+            'pattern': '模式選號',
+            'combination': '組合選號',
+            'balanced': '平衡選號',
+            'random': '隨機選號'
+        };
+        
+        // 模擬熱門號碼數據
+        const HOT_NUMBERS = {
+            'big-lotto': [3, 8, 12, 15, 21, 27, 33, 38, 42, 46],
+            'power-color': [3, 7, 11, 15, 19, 23, 27, 31, 35],
+            '539': [3, 7, 11, 15, 19, 23, 27, 31, 35, 39]
+        };
+        
+        // 模擬冷門號碼數據
+        const COLD_NUMBERS = {
+            'big-lotto': [1, 5, 9, 13, 17, 25, 29, 37, 41, 49],
+            'power-color': [1, 5, 9, 13, 17, 21, 25, 29, 33, 37],
+            '539': [1, 5, 9, 13, 17, 21, 25, 29, 33, 37]
+        };
+        
+        // 模擬常見號碼對
+        const COMMON_PAIRS = {
+            'big-lotto': [[1, 2], [5, 10], [15, 25], [20, 30], [3, 8], [7, 14], [12, 24], [18, 36], [9, 19], [11, 22]],
+            'power-color': [[1, 2], [5, 10], [15, 25], [20, 30], [3, 8], [7, 14], [12, 24], [18, 36], [9, 19], [11, 22]],
+            '539': [[1, 2], [5, 10], [15, 25], [20, 30], [3, 8], [7, 14], [12, 24], [18, 36], [9, 19], [11, 22]]
+        };
+        
+        // 模擬常見三連號
+        const COMMON_TRIPLETS = {
+            'big-lotto': [[1, 2, 3], [5, 10, 15], [10, 20, 30], [7, 14, 21], [3, 6, 9], [11, 22, 33], [2, 4, 8], [13, 26, 39], [17, 27, 37], [8, 16, 24]],
+            'power-color': [[1, 2, 3], [5, 10, 15], [10, 20, 30], [7, 14, 21], [3, 6, 9], [11, 22, 33], [2, 4, 8], [13, 26, 37], [17, 27, 37], [8, 16, 24]],
+            '539': [[1, 2, 3], [5, 10, 15], [10, 20, 30], [7, 14, 21], [3, 6, 9], [11, 22, 33], [2, 4, 8], [13, 26, 39], [17, 27, 37], [8, 16, 24]]
+        };
+        
+        // DOM元素
+        const lotteryTypeSelect = document.getElementById('lottery-type');
+        const algorithmTypeSelect = document.getElementById('algorithm-type');
+        const algorithmDescription = document.getElementById('algorithm-description');
+        const generateBtn = document.getElementById('generate-btn');
+        const resultDiv = document.getElementById('result');
+        const historyList = document.getElementById('history-list');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // 歷史記錄
+        let history = JSON.parse(localStorage.getItem('lotteryHistory')) || [];
+        
+        // 初始化
+        function init() {
+            // 顯示演算法描述
+            updateAlgorithmDescription();
+            
+            // 顯示歷史記錄
+            renderHistory();
+            
+            // 添加事件監聽器
+            algorithmTypeSelect.addEventListener('change', updateAlgorithmDescription);
+            generateBtn.addEventListener('click', generateNumbers);
+            
+            // 標籤頁切換
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // 更新標籤頁狀態
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // 更新內容區域
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+        }
+        
+        // 更新演算法描述
+        function updateAlgorithmDescription() {
+            const algorithmType = algorithmTypeSelect.value;
+            algorithmDescription.innerHTML = ALGORITHM_DESCRIPTIONS[algorithmType];
+        }
+        
+        // 生成號碼
+        function generateNumbers() {
+            const lotteryType = lotteryTypeSelect.value;
+            const algorithmType = algorithmTypeSelect.value;
+            const params = LOTTERY_PARAMS[lotteryType];
+            
+            let mainNumbers;
+            let specialNumber = null;
+            
+            // 根據選擇的演算法生成號碼
+            switch (algorithmType) {
+                case 'hot':
+                    mainNumbers = generateHotNumbers(lotteryType, params.numbers, params.maxNumber);
+                    break;
+                case 'cold':
+                    mainNumbers = generateColdNumbers(lotteryType, params.numbers, params.maxNumber);
+                    break;
+                case 'pattern':
+                    mainNumbers = generatePatternNumbers(params.numbers, params.maxNumber);
+                    break;
+                case 'combination':
+                    mainNumbers = generateCombinationNumbers(lotteryType, params.numbers, params.maxNumber);
+                    break;
+                case 'balanced':
+                    mainNumbers = generateBalancedNumbers(lotteryType, params.numbers, params.maxNumber);
+                    break;
+                case 'random':
+                default:
+                    mainNumbers = generateRandomNumbers(params.numbers, params.maxNumber);
+                    break;
+            }
+            
+            // 生成特別號 (如果需要)
+            if (params.special) {
+                specialNumber = generateSpecialNumber(mainNumbers, params.maxNumber);
+            }
+            
+            // 格式化並顯示結果
+            const result = formatResult(mainNumbers, specialNumber, params.special);
+            resultDiv.textContent = result;
+            
+            // 添加到歷史記錄
+            addToHistory(lotteryType, algorithmType, result);
+        }
+        
+        // 熱門號碼選號演算法
+        function generateHotNumbers(lotteryType, pickCount, maxNumber) {
+            // 使用模擬的熱門號碼數據
+            const hotNumbers = HOT_NUMBERS[lotteryType];
+            
+            // 建立號碼權重字典
+            const weights = {};
+            for (let i = 1; i <= maxNumber; i++) {
+                weights[i] = hotNumbers.includes(i) ? 10 : 1; // 熱門號碼權重較高
+            }
+            
+            // 根據權重選擇號碼
+            return weightedRandomSelection(weights, pickCount, maxNumber);
+        }
+        
+        // 冷門號碼選號演算法
+        function generateColdNumbers(lotteryType, pickCount, maxNumber) {
+            // 使用模擬的冷門號碼數據
+            const coldNumbers = COLD_NUMBERS[lotteryType];
+            
+            // 建立號碼權重字典
+            const weights = {};
+            for (let i = 1; i <= maxNumber; i++) {
+                weights[i] = coldNumbers.includes(i) ? 10 : 1; // 冷門號碼權重較高
+            }
+            
+            // 根據權重選擇號碼
+            return weightedRandomSelection(weights, pickCount, maxNumber);
+        }
+        
+        // 模式選號演算法
+        function generatePatternNumbers(pickCount, maxNumber) {
+            // 決定奇偶比例
+            const oddCount = Math.floor(Math.random() * (pickCount + 1));
+            const evenCount = pickCount - oddCount;
+            
+            // 決定大小比例 (以最大號碼的一半為界)
+            const midValue = Math.floor(maxNumber / 2);
+            const highCount = Math.floor(Math.random() * (pickCount + 1));
+            const lowCount = pickCount - highCount;
+            
+            // 生成符合模式的號碼
+            const result = [];
+            
+            // 生成奇數大號
+            for (let i = 0; i < Math.min(oddCount, highCount); i++) {
+                let num;
+                do {
+                    num = midValue + 1 + Math.floor(Math.random() * (maxNumber - midValue));
+                    if (num % 2 === 0) num--; // 確保是奇數
+                    if (num > maxNumber) num = maxNumber - (num % 2 === 0 ? 1 : 0); // 確保在範圍內
+                } while (result.includes(num) || num <= midValue || num % 2 === 0);
+                
+                result.push(num);
+            }
+            
+            // 生成奇數小號
+            for (let i = 0; i < oddCount - Math.min(oddCount, highCount); i++) {
+                let num;
+                do {
+                    num = 1 + Math.floor(Math.random() * midValue);
+                    if (num % 2 === 0) num++; // 確保是奇數
+                    if (num > midValue) num = midValue - (num % 2 === 0 ? 0 : 1); // 確保在範圍內
+                } while (result.includes(num) || num > midValue || num % 2 === 0);
+                
+                result.push(num);
+            }
+            
+            // 生成偶數大號
+            for (let i = 0; i < Math.min(evenCount, highCount - (highCount - Math.min(oddCount, highCount))); i++) {
+                let num;
+                do {
+                    num = midValue + 1 + Math.floor(Math.random() * (maxNumber - midValue));
+                    if (num % 2 === 1) num++; // 確保是偶數
+                    if (num > maxNumber) num = maxNumber - (num % 2 === 1 ? 0 : 1); // 確保在範圍內
+                } while (result.includes(num) || num <= midValue || num % 2 === 1);
+                
+                result.push(num);
+            }
+            
+            // 生成偶數小號
+            while (result.length < pickCount) {
+                let num;
+                do {
+                    num = 1 + Math.floor(Math.random() * midValue);
+                    if (num % 2 === 1) num++; // 確保是偶數
+                    if (num > midValue) num = midValue - (num % 2 === 1 ? 1 : 0); // 確保在範圍內
+                } while (result.includes(num) || num > midValue || num % 2 === 1);
+                
+                result.push(num);
+            }
+            
+            // 排序結果
+            return result.sort((a, b) => a - b);
+        }
+        
+        // 組合選號演算法
+        function generateCombinationNumbers(lotteryType, pickCount, maxNumber) {
+            // 使用模擬的常見號碼對和三連號
+            const commonPairs = COMMON_PAIRS[lotteryType];
+            const commonTriplets = COMMON_TRIPLETS[lotteryType];
+            
+            // 過濾超出範圍的組合
+            const validPairs = commonPairs.filter(pair => pair[0] <= maxNumber && pair[1] <= maxNumber);
+            const validTriplets = commonTriplets.filter(triplet => 
+                triplet[0] <= maxNumber && triplet[1] <= maxNumber && triplet[2] <= maxNumber);
+            
+            // 初始化結果集
+            const selectedNumbers = [];
+            
+            // 如果可以選擇三連號且有足夠的號碼需要選擇
+            if (validTriplets.length > 0 && pickCount >= 3 && Math.random() > 0.5) {
+                const triplet = validTriplets[Math.floor(Math.random() * validTriplets.length)];
+                for (const num of triplet) {
+                    selectedNumbers.push(num);
+                }
+            }
+            
+            // 如果還需要更多號碼，選擇號碼對
+            const shuffledPairs = [...validPairs].sort(() => Math.random() - 0.5);
+            
+            for (const pair of shuffledPairs) {
+                if (selectedNumbers.length >= pickCount) break;
+                
+                // 檢查是否有重複
+                let hasDuplicate = false;
+                for (const num of pair) {
+                    if (selectedNumbers.includes(num)) {
+                        hasDuplicate = true;
+                        break;
+                    }
+                }
+                
+                // 如果沒有重複，添加到選擇的號碼中
+                if (!hasDuplicate) {
+                    for (const num of pair) {
+                        selectedNumbers.push(num);
+                        if (selectedNumbers.length >= pickCount) break;
+                    }
+                }
+            }
+            
+            // 如果還沒選夠，隨機補充
+            while (selectedNumbers.length < pickCount) {
+                const num = 1 + Math.floor(Math.random() * maxNumber);
+                if (!selectedNumbers.includes(num)) {
+                    selectedNumbers.push(num);
+                }
+            }
+            
+            // 如果選出的號碼超過所需數量，隨機移除多餘的號碼
+            while (selectedNumbers.length > pickCount) {
+                const index = Math.floor(Math.random() * selectedNumbers.length);
+                selectedNumbers.splice(index, 1);
+            }
+            
+            // 排序結果
+            return selectedNumbers.sort((a, b) => a - b);
+        }
+        
+        // 平衡選號演算法
+        function generateBalancedNumbers(lotteryType, pickCount, maxNumber) {
+            // 使用模擬的熱門號碼和冷門號碼數據
+            const hotNumbers = HOT_NUMBERS[lotteryType];
+            const coldNumbers = COLD_NUMBERS[lotteryType];
+            
+            // 決定熱門號碼和冷門號碼的比例
+            const hotPickCount = Math.floor(pickCount / 2);
+            const coldPickCount = pickCount - hotPickCount;
+            
+            // 選擇熱門號碼
+            const selectedNumbers = [];
+            const availableHotNumbers = [...hotNumbers];
+            
+            for (let i = 0; i < hotPickCount && availableHotNumbers.length > 0; i++) {
+                const index = Math.floor(Math.random() * availableHotNumbers.length);
+                const num = availableHotNumbers[index];
+                
+                if (num <= maxNumber) {
+                    selectedNumbers.push(num);
+                    availableHotNumbers.splice(index, 1);
+                }
+            }
+            
+            // 選擇冷門號碼
+            const availableColdNumbers = coldNumbers.filter(num => 
+                !selectedNumbers.includes(num) && num <= maxNumber);
+            
+            for (let i = 0; i < coldPickCount && availableColdNumbers.length > 0; i++) {
+                const index = Math.floor(Math.random() * availableColdNumbers.length);
+                selectedNumbers.push(availableColdNumbers[index]);
+                availableColdNumbers.splice(index, 1);
+            }
+            
+            // 如果還沒選夠，隨機補充
+            while (selectedNumbers.length < pickCount) {
+                const num = 1 + Math.floor(Math.random() * maxNumber);
+                if (!selectedNumbers.includes(num)) {
+                    selectedNumbers.push(num);
+                }
+            }
+            
+            // 排序結果
+            return selectedNumbers.sort((a, b) => a - b);
+        }
+        
+        // 隨機選號演算法
+        function generateRandomNumbers(pickCount, maxNumber) {
+            const result = [];
+            
+            while (result.length < pickCount) {
+                const num = 1 + Math.floor(Math.random() * maxNumber);
+                if (!result.includes(num)) {
+                    result.push(num);
+                }
+            }
+            
+            return result.sort((a, b) => a - b);
+        }
+        
+        // 生成特別號
+        function generateSpecialNumber(mainNumbers, maxNumber) {
+            let specialNumber;
+            
+            do {
+                specialNumber = 1 + Math.floor(Math.random() * maxNumber);
+            } while (mainNumbers.includes(specialNumber));
+            
+            return specialNumber;
+        }
+        
+        // 加權隨機選擇
+        function weightedRandomSelection(weights, pickCount, maxNumber) {
+            const result = [];
+            const availableNumbers = Object.keys(weights).map(Number);
+            
+            while (result.length < pickCount && availableNumbers.length > 0) {
+                // 計算總權重
+                let totalWeight = 0;
+                for (const num of availableNumbers) {
+                    totalWeight += weights[num];
+                }
+                
+                // 隨機選擇
+                let random = Math.random() * totalWeight;
+                let cumulativeWeight = 0;
+                let selectedIndex = -1;
+                
+                for (let i = 0; i < availableNumbers.length; i++) {
+                    const num = availableNumbers[i];
+                    cumulativeWeight += weights[num];
+                    
+                    if (random <= cumulativeWeight) {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+                
+                if (selectedIndex !== -1) {
+                    const selectedNumber = availableNumbers[selectedIndex];
+                    result.push(selectedNumber);
+                    availableNumbers.splice(selectedIndex, 1);
+                } else {
+                    // 如果沒有選到，隨機選擇一個
+                    const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                    result.push(availableNumbers[randomIndex]);
+                    availableNumbers.splice(randomIndex, 1);
+                }
+            }
+            
+            // 如果還沒選夠，隨機補充
+            while (result.length < pickCount) {
+                const num = 1 + Math.floor(Math.random() * maxNumber);
+                if (!result.includes(num)) {
+                    result.push(num);
+                }
+            }
+            
+            // 排序結果
+            return result.sort((a, b) => a - b);
+        }
+        
+        // 格式化結果
+        function formatResult(mainNumbers, specialNumber, hasSpecial) {
+            let result = mainNumbers.join(', ');
+            
+            if (hasSpecial && specialNumber !== null) {
+                result += ' + ' + specialNumber;
+            }
+            
+            return result;
+        }
+        
+        // 添加到歷史記錄
+        function addToHistory(lotteryType, algorithmType, result) {
+            const lotteryName = LOTTERY_DISPLAY_NAMES[lotteryType];
+            const algorithmName = ALGORITHM_DISPLAY_NAMES[algorithmType];
+            const timestamp = new Date().toLocaleString();
+            
+            const historyItem = {
+                lotteryType,
+                algorithmType,
+                lotteryName,
+                algorithmName,
+                result,
+                timestamp
+            };
+            
+            // 添加到歷史記錄的開頭
+            history.unshift(historyItem);
+            
+            // 限制歷史記錄數量
+            if (history.length > 50) {
+                history.pop();
+            }
+            
+            // 保存到本地存儲
+            localStorage.setItem('lotteryHistory', JSON.stringify(history));
+            
+            // 更新歷史記錄顯示
+            renderHistory();
+        }
+        
+        // 渲染歷史記錄
+        function renderHistory() {
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-item">尚無歷史記錄</div>';
+                return;
+            }
+            
+            for (const item of history) {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div><strong>${item.lotteryName} (${item.algorithmName})</strong></div>
+                    <div>${item.result}</div>
+                    <div><small>${item.timestamp}</small></div>
+                `;
+                
+                // 點擊歷史記錄項目時顯示結果
+                historyItem.addEventListener('click', () => {
+                    resultDiv.textContent = item.result;
+                    
+                    // 設置對應的彩券類型和演算法
+                    lotteryTypeSelect.value = item.lotteryType;
+                    algorithmTypeSelect.value = item.algorithmType;
+                    
+                    // 更新演算法描述
+                    updateAlgorithmDescription();
+                });
+                
+                historyList.appendChild(historyItem);
+            }
+        }
+        
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

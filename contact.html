@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>聯絡我們</title>
+  <style>
+    .contact-form { max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; }
+    input, textarea { width: 100%; padding: 8px; }
+    button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <form class="contact-form" id="contactForm">
+    <div class="form-group">
+      <label>您的姓名</label>
+      <input type="text" name="name" required>
+    </div>
+    <div class="form-group">
+      <label>電子郵件</label>
+      <input type="email" name="email" required>
+    </div>
+    <div class="form-group">
+      <label>訊息內容</label>
+      <textarea name="message" rows="5" required></textarea>
+    </div>
+    <button type="submit">傳送訊息</button>
+  </form>
+
+  <script>
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      
+      try {
+        const response = await fetch('/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        if (response.ok) {
+          alert('訊息已送出！');
+          e.target.reset();
+        } else {
+          alert('發送失敗，請稍後再試');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('連線錯誤');
+      }
+    });
+  </script>
+</body>
+</html>

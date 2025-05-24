@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>整合式郵件編輯器</title>
+    <style>
+        /* 整合所有樣式 */
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .email-editor {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 10px 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f8f8;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar button, .toolbar select {
+            padding: 6px 12px;
+            background: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toolbar button:hover {
+            background: #e0e0e0;
+        }
+        
+        .email-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .email-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .email-body {
+            min-height: 300px;
+            padding: 20px;
+            border: none;
+            outline: none;
+            overflow-y: auto;
+        }
+        
+        .attachments {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .attachment-list {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .attachment-item {
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .remove-attachment {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #ff4444;
+        }
+        
+        .action-buttons {
+            padding: 15px 20px;
+            background: #f8f8f8;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #eee;
+        }
+        
+        .send-button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .send-button:hover {
+            background: #3367d6;
+        }
+        
+        .status-message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        @media (max-width: 600px) {
+            .email-editor {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-editor">
+        <!-- 工具列 -->
+        <div class="toolbar">
+            <button onclick="formatText('bold')"><strong>B</strong></button>
+            <button onclick="formatText('italic')"><em>I</em></button>
+            <button onclick="formatText('underline')"><u>U</u></button>
+            <input type="color" onchange="formatText('foreColor', this.value)">
+            <button onclick="formatText('insertUnorderedList')">列表</button>
+            <button onclick="insertTemplate()">插入模板</button>
+            <input type="file" id="file-input" multiple style="display: none;">
+            <button onclick="document.getElementById('file-input').click()">添加附件</button>
+        </div>
+
+        <!-- 郵件表頭 -->
+        <div class="email-header">
+            <input type="email" id="recipient" class="email-input" placeholder="收件人 (多個請用逗號分隔)" value="">
+            <input type="text" id="subject" class="email-input" placeholder="主旨" value="">
+            <input type="text" id="cc" class="email-input" placeholder="副本 (CC)" value="">
+        </div>
+
+        <!-- 郵件正文 -->
+        <div id="email-body" class="email-body" contenteditable="true" placeholder="輸入郵件內容..."></div>
+
+        <!-- 附件區域 -->
+        <div class="attachments">
+            <div>附件：</div>
+            <div class="attachment-list" id="attachment-list"></div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="action-buttons">
+            <button id="save-draft" onclick="saveDraft()">儲存草稿</button>
+            <button class="send-button" onclick="prepareSend()">發送郵件</button>
+        </div>
+
+        <!-- 狀態訊息 -->
+        <div id="status-message" class="status-message"></div>
+    </div>
+
+    <script>
+        // 初始化從URL獲取mailto參數
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mailtoLink = urlParams.get('mailto');
+            
+            if (mailtoLink) {
+                parseMailto(mailtoLink);
+            } else {
+                loadDraft();
+            }
+        });
+
+        // 解析mailto連結
+        function parseMailto(mailtoUrl) {
+            try {
+                const uri = new URL(mailtoUrl);
+                const params = new URLSearchParams(uri.search);
+                
+                // 填充收件人
+                document.getElementById('recipient').value = uri.pathname.replace('mailto:', '');
+                
+                // 填充主旨和內容
+                if (params.has('subject')) {
+                    document.getElementById('subject').value = decodeURIComponent(params.get('subject'));
+                }
+                
+                if (params.has('body')) {
+                    document.getElementById('email-body').innerHTML = decodeURIComponent(params.get('body')).replace(/\n/g, '<br>');
+                }
+                
+                if (params.has('cc')) {
+                    document.getElementById('cc').value = decodeURIComponent(params.get('cc'));
+                }
+            } catch (e) {
+                console.error('解析mailto連結失敗:', e);
+            }
+        }
+
+        // 準備發送郵件
+        function prepareSend() {
+            const recipient = document.getElementById('recipient').value;
+            const subject = document.getElementById('subject').value;
+            const cc = document.getElementById('cc').value;
+            const body = document.getElementById('email-body').innerText;
+            const attachments = Array.from(document.querySelectorAll('.attachment-item')).map(item => item.dataset.filename);
+            
+            // 驗證必填欄位
+            if (!recipient) {
+                showStatus('請輸入收件人地址', 'error');
+                return;
+            }
+            
+            // 組合mailto連結
+            let mailtoUrl = `mailto:${encodeURIComponent(recipient)}`;
+            const params = [];
+            
+            if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
+            if (body) params.push(`body=${encodeURIComponent(body)}`);
+            if (cc) params.push(`cc=${encodeURIComponent(cc)}`);
+            
+            if (params.length > 0) {
+                mailtoUrl += `?${params.join('&')}`;
+            }
+            
+            // 檢查附件
+            if (attachments.length > 0) {
+                if (!confirm('注意：mailto連結無法包含附件，是否繼續發送？')) {
+                    return;
+                }
+            }
+            
+            // 發送前保存
+            saveDraft();
+            
+            // 實際發送
+            window.location.href = mailtoUrl;
+            
+            // 監測是否成功打開郵件客戶端
+            setTimeout(() => {
+                if (!document.hidden) {
+                    showStatus('未檢測到郵件客戶端，請手動複製內容', 'error');
+                } else {
+                    showStatus('郵件客戶端已開啟，請完成發送', 'success');
+                    clearDraft();
+                }
+            }, 1000);
+        }
+
+        // 格式設定功能
+        function formatText(command, value = null) {
+            document.execCommand(command, false, value);
+            document.getElementById('email-body').focus();
+        }
+
+        // 插入模板
+        function insertTemplate() {
+            const template = `您好，<br><br>感謝您的來信。<br><br>此致<br>${getUserName() || '[您的姓名]'}`;
+            document.getElementById('email-body').innerHTML += template;
+        }
+
+        // 附件處理
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const files = e.target.files;
+            const list = document.getElementById('attachment-list');
+            
+            for (let file of files) {
+                const div = document.createElement('div');
+                div.className = 'attachment-item';
+                div.dataset.filename = file.name;
+                div.innerHTML = `
+                    ${file.name} (${formatFileSize(file.size)})
+                    <span class="remove-attachment" onclick="removeAttachment(this.parentElement)">×</span>
+                `;
+                list.appendChild(div);
+            }
+            
+            // 重置input以允許重複選擇相同文件
+            e.target.value = '';
+        });
+
+        // 移除附件
+        function removeAttachment(element) {
+            element.remove();
+        }
+
+        // 草稿功能
+        function saveDraft() {
+            const draft = {
+                recipient: document.getElementById('recipient').value,
+                subject: document.getElementById('subject').value,
+                cc: document.getElementById('cc').value,
+                body: document.getElementById('email-body').innerHTML,
+                attachments: Array.from(document.querySelectorAll('.attachment-item')).map(item => item.dataset.filename)
+            };
+            
+            localStorage.setItem('emailDraft', JSON.stringify(draft));
+            showStatus('草稿已自動保存', 'success');
+        }
+
+        function loadDraft() {
+            const draft = JSON.parse(localStorage.getItem('emailDraft'));
+            if (draft) {
+                document.getElementById('recipient').value = draft.recipient || '';
+                document.getElementById('subject').value = draft.subject || '';
+                document.getElementById('cc').value = draft.cc || '';
+                document.getElementById('email-body').innerHTML = draft.body || '';
+                
+                if (draft.attachments && draft.attachments.length > 0) {
+                    showStatus(`載入了包含 ${draft.attachments.length} 個附件的草稿`, 'success');
+                }
+            }
+        }
+
+        function clearDraft() {
+            localStorage.removeItem('emailDraft');
+        }
+
+        // 輔助函數
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getUserName() {
+            return localStorage.getItem('userName') || '';
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status-message');
+            status.textContent = message;
+            status.className = `status-message ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,58 +1,35 @@
-
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>聯絡我們</title>
-  <style>
-    .contact-form { max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; }
-    input, textarea { width: 100%; padding: 8px; }
-    button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <title>聯絡技術支持</title>
 </head>
 <body>
-  <form class="contact-form" id="contactForm">
-    <div class="form-group">
-      <label>您的姓名</label>
-      <input type="text" name="name" required>
-    </div>
-    <div class="form-group">
-      <label>電子郵件</label>
-      <input type="email" name="email" required>
-    </div>
-    <div class="form-group">
-      <label>訊息內容</label>
-      <textarea name="message" rows="5" required></textarea>
-    </div>
-    <button type="submit">傳送訊息</button>
-  </form>
+    <!-- 方法一：直接 mailto 链接 -->
+    <h2>方式 1: 直接發送郵件</h2>
+    <p>
+        點擊這裡直接發送郵件至：
+        <a href="mailto:support@macrotech.tw?subject=技術支援請求&body=請在此輸入您的問題內容">
+            support@macrotech.tw
+        </a>
+    </p>
 
-  <script>
-    document.getElementById('contactForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      
-      try {
-        const response = await fetch('/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.fromEntries(formData))
-        });
-        
-        if (response.ok) {
-          alert('訊息已送出！');
-          e.target.reset();
-        } else {
-          alert('發送失敗，請稍後再試');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('連線錯誤');
-      }
-    });
-  </script>
+    <!-- 方法二：聯繫表單 (需搭配後端處理) -->
+    <h2>方式 2: 使用聯繫表單</h2>
+    <form action="mailto:support@macrotech.tw" method="post" enctype="text/plain">
+        <label for="name">姓名：</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="email">您的郵箱：</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="subject">主題：</label>
+        <input type="text" id="subject" name="subject" required><br><br>
+
+        <label for="message">訊息內容：</label><br>
+        <textarea id="message" name="message" rows="5" cols="40" required></textarea><br><br>
+
+        <input type="submit" value="發送郵件">
+    </form>
 </body>
 </html>

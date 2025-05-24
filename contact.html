@@ -4,33 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聯絡我們</title>
+    <style>
+        .hidden { display: none; }
+        .error { color: red; }
+        .success { color: green; }
+        form { max-width: 500px; margin: 20px auto; }
+        input, textarea { width: 100%; margin: 5px 0; }
+    </style>
 </head>
 <body>
-    <!-- 方法一：直接 mailto 链接 -->
-    <h2>方式 1: 直接發送郵件</h2>
-    <p>
-        點擊這裡直接發送郵件至：
-        <a href="mailto:support@macrotech.tw?subject=技術支援請求&body=請在此輸入您的問題內容">
-            support@macrotech.tw
-        </a>
-    </p>
+    <!-- 防爬虫动态生成的邮件链接 -->
+    <h2>快速聯絡</h2>
+    <div id="dynamic-email"></div>
 
-    <!-- 方法二：聯繫表單 (需搭配後端處理) -->
-    <h2>方式 2: 使用聯繫表單</h2>
-    <form action="mailto:support@macrotech.tw" method="post" enctype="text/plain">
-        <label for="name">姓名：</label>
-        <input type="text" id="name" name="name" required><br><br>
+    <!-- 联系表单 -->
+    <form id="contact-form">
+        <div class="form-group">
+            <label for="name">姓名 *</label>
+            <input type="text" id="name" required>
+            <span class="error" id="name-error"></span>
+        </div>
 
-        <label for="email">您的郵箱：</label>
-        <input type="email" id="email" name="email" required><br><br>
+        <div class="form-group">
+            <label for="email">您的郵箱 *</label>
+            <input type="email" id="email" required>
+            <span class="error" id="email-error"></span>
+        </div>
 
-        <label for="subject">主題：</label>
-        <input type="text" id="subject" name="subject" required><br><br>
+        <div class="form-group">
+            <label for="message">訊息內容 *</label>
+            <textarea id="message" rows="5" required></textarea>
+            <span class="error" id="message-error"></span>
+        </div>
 
-        <label for="message">訊息內容：</label><br>
-        <textarea id="message" name="message" rows="5" cols="40" required></textarea><br><br>
-
-        <input type="submit" value="發送郵件">
+        <div class="form-group">
+            <button type="submit">發送訊息</button>
+            <div id="status-message" class="hidden"></div>
+        </div>
     </form>
+
+    <script>
+        // 防爬虫邮箱动态生成
+        function generateEmailLink() {
+            const parts = ['support', 'macrotech.tw'];
+            const email = `${parts[0]}@${parts[1]}`;
+            const link = document.createElement('a');
+            link.href = `mailto:${email}?subject=技術支援請求`;
+            link.textContent = '點擊直接發送郵件';
+            document.getElementById('dynamic-email').appendChild(link);
+        }
+
+        // 表单验证
+        function validateForm() {
+            let isValid = true;
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const message = document.getElementById('message').value.trim();
+
+            // 重置错误信息
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            
+            // 验证姓名
+            if (name.length < 2) {
+                document.getElementById('name-error').textContent = '姓名至少需要2個字元';
+                isValid = false;
+            }
+
+            // 验证邮箱
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('email-error').textContent = '請輸入有效的電子郵件地址';
+                isValid = false;
+            }
+
+            // 验证消息
+            if (message.length < 10) {
+                document.getElementById('message-error').textContent = '訊息內容至少需要10個字元';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // 表单提交处理
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            if (!validateForm()) return;
+
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.classList.remove('success', 'error');
+            statusMessage.textContent = '發送中...';
+            statusMessage.classList.remove('hidden');
+
+            try {
+                // 这里是模拟发送，实际需要替换为：
+                // 1. 使用Fetch API发送到后端服务器
+                // 2. 或直接使用mailto
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟延迟
+                
+                // 如果使用mailto直接发送：
+                const email = 'support@macrotech.tw';
+                const subject = '内容建議';
+                const body = `來自: ${document.getElementById('name').value}
+郵箱: ${document.getElementById('email').value}
+訊息: ${document.getElementById('message').value}`;
+
+                window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                statusMessage.textContent = '已打開郵件客戶端，請完成發送';
+                statusMessage.classList.add('success');
+                document.getElementById('contact-form').reset();
+            } catch (error) {
+                statusMessage.textContent = '發送失敗，請稍後再試';
+                statusMessage.classList.add('error');
+            }
+        }
+
+        // 初始化
+        document.getElementById('contact-form').addEventListener('submit', handleSubmit);
+        window.addEventListener('DOMContentLoaded', generateEmailLink);
+    </script>
 </body>
 </html>
